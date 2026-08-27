@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../sales/sales_screen.dart';
 // Main dashboard screen of MyanPOS.
 //
 // This screen contains the main actions that users will use
@@ -39,7 +39,14 @@ class DashboardScreen extends StatelessWidget {
                   child: _DashboardButton(
                     title: 'New Sale',
                     icon: Icons.point_of_sale,
-                    onPressed: () {},
+                    // Open the Sales screen when the user taps New Sale.
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const SalesScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
