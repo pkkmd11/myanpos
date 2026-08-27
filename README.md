@@ -4,14 +4,14 @@ A simple Point of Sale system for small business in Myanmar.
 
 Status: Planning
 
-##Features
+## Features
 - Product management
 - Sales and checkout
 - Inventory management
 - Customer management
 - Sales reports
 
-##Target Users
+## Target Users
 - Small grocery stores
 - Phone and electronics shops
 - Small retail businesses in Myanmar
