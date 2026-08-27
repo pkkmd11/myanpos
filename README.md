@@ -15,3 +15,6 @@ Status: Planning
 - Small grocery stores
 - Phone and electronics shops
 - Small retail businesses in Myanmar
+
+## Project Goal
+MyanPOS aims to provide a simple, affordable, and easy-to-use Point of Sale system for small businesses in Myanmar.
