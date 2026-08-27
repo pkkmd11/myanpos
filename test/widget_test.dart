@@ -1,30 +1,24 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+// Import the MyanPOS application from our main.dart file.
 import 'package:myanpos/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  // Test that the MyanPOS application starts successfully.
+  testWidgets('MyanPOS displays the welcome message', (WidgetTester tester) async {
+    // Start the MyanPOS application.
+    await tester.pumpWidget(const MyanPOSApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Check that the application displays "Welcome to MyanPOS".
+    expect(
+      find.text('Welcome to MyanPOS'),
+      findsOneWidget,
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Check that the application title is displayed.
+    expect(
+      find.text('MyanPOS'),
+      findsOneWidget,
+    );
   });
 }
