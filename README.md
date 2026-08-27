@@ -18,3 +18,23 @@ Status: Planning
 
 ## Project Goal
 MyanPOS aims to provide a simple, affordable, and easy-to-use Point of Sale system for small businesses in Myanmar.
+
+## Tech Stack
+
+### Frontend
+- Flutter
+- Dart
+
+### Backend
+- Supabase
+- PostgreSQL
+
+### Autentication
+- Supabase Auth
+
+### Object Storage
+- Cloudflare R2
+
+### Development
+- Git
+- GitHub
