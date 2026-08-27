@@ -10,3 +10,8 @@ Status: Planning
 - Inventory management
 - Customer management
 - Sales reports
+
+##Target Users
+- Small grocery stores
+- Phone and electronics shops
+- Small retail businesses in Myanmar
