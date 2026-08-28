@@ -24,6 +24,9 @@ class _SalesScreenState extends State<SalesScreen> {
   // Products currently displayed after searching.
   List<Product> _searchResults = [];
 
+  // Products currently added to the shopping cart.
+  final List<Product> _cart = [];
+
   @override
   void dispose() {
     // Release the text controller when the screen is destroyed.
@@ -92,6 +95,39 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
 
             const SizedBox(height: 16),
+               // Display products currently in the cart.
+            if (_cart.isNotEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cart heading.
+                      const Text(
+                        'Cart',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Display each product added to the cart.
+                      for (final product in _cart)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(product.name),
+                          subtitle: const Text('Quantity: 1'),
+                          trailing: Text(
+                            '${product.price.toStringAsFixed(0)} MMK',
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
 
             // Display search results.
             Expanded(
@@ -110,8 +146,11 @@ class _SalesScreenState extends State<SalesScreen> {
                         return _ProductResultCard(
                           product: product,
                           onTap: () {
-                            // We will add the product to the cart
-                            // in the next task.
+                            // Add the selected product to the cart.
+                            setState(() {
+                              _cart.add(product);
+                            });
+                            
                           },
                         );
                       },
