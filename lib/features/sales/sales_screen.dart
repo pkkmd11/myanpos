@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/cart_item.dart';
 import '../../models/product.dart';
 import '../../services/product_service.dart';
+import 'widgets/cart_item_tile.dart';
 
 // Sales screen.
 //
@@ -186,79 +187,34 @@ class _SalesScreenState extends State<SalesScreen> {
                       const SizedBox(height: 8),
 
                       // Display every item in the cart.
-                      for (final cartItem in _cart)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                     // Display every item in the cart.
+                    for (final cartItem in _cart)
+                      CartItemTile(
+                        cartItem: cartItem,
 
-                          // Product name.
-                          title: Text(cartItem.product.name),
+                        // Decrease the quantity.
+                        onDecrease: () {
+                          setState(() {
+                            if (cartItem.quantity > 1) {
+                              cartItem.quantity--;
+                            }
+                          });
+                        },
 
-                          // Quantity controls.
-                          subtitle: Row(
-                            children: [
-                              // Decrease quantity.
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    // Prevent quantity from becoming zero.
-                                    if (cartItem.quantity > 1) {
-                                      cartItem.quantity--;
-                                    }
-                                  });
-                                },
-                                icon: const Icon(Icons.remove),
-                              ),
+                        // Increase the quantity.
+                        onIncrease: () {
+                          setState(() {
+                            cartItem.quantity++;
+                          });
+                        },
 
-                              // Current quantity.
-                              Text(
-                                '${cartItem.quantity}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              // Increase quantity.
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    cartItem.quantity++;
-                                  });
-                                },
-                                icon: const Icon(Icons.add),
-                              ),
-                            ],
-                          ),
-
-                          // Total price for this product.
-                          // Display the item total and remove button.
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Display the total price for this cart item.
-                              Text(
-                                '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              const SizedBox(width: 8),
-
-                              // Remove the product from the cart.
-                              IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    // Remove this cart item.
-                                    _cart.remove(cartItem);
-                                  });
-                                },
-                                icon: const Icon(Icons.delete_outline),
-                                tooltip: 'Remove from cart',
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Remove the item from the cart.
+                        onRemove: () {
+                          setState(() {
+                            _cart.remove(cartItem);
+                          });
+                        },
+                      ),
 
                       const Divider(),
 
