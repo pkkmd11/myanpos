@@ -117,23 +117,57 @@ class _SalesScreenState extends State<SalesScreen> {
 
                       // Display each product added to the cart.
                       // Display each cart item.
-                      for (final cartItem in _cart)
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
+                     // Display each item currently in the cart.
+            for (final cartItem in _cart)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
 
-                          // Display the product name.
-                          title: Text(cartItem.product.name),
+                // Product name.
+                title: Text(cartItem.product.name),
 
-                          // Display the current quantity.
-                          subtitle: Text(
-                            'Quantity: ${cartItem.quantity}',
-                          ),
+                // Quantity controls.
+                subtitle: Row(
+                  children: [
+                    // Decrease quantity button.
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          // Do not allow the quantity to become zero.
+                          if (cartItem.quantity > 1) {
+                            cartItem.quantity--;
+                          }
+                        });
+                      },
+                      icon: const Icon(Icons.remove),
+                    ),
 
-                          // Display the total price for this cart item.
-                          trailing: Text(
-                            '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
-                          ),
-                        ),
+                    // Current quantity.
+                    Text(
+                      '${cartItem.quantity}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+        // Increase quantity button.
+        IconButton(
+          onPressed: () {
+            setState(() {
+              // Increase the quantity by one.
+              cartItem.quantity++;
+            });
+          },
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    ),
+
+    // Total price for this cart item.
+    trailing: Text(
+      '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
+    ),
+  ),
                     ],
                   ),
                 ),
