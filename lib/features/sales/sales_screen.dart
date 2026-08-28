@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/product.dart';
+import '../../models/cart_item.dart';
 import '../../services/product_service.dart';
 
 // Sales screen.
@@ -25,7 +26,7 @@ class _SalesScreenState extends State<SalesScreen> {
   List<Product> _searchResults = [];
 
   // Products currently added to the shopping cart.
-  final List<Product> _cart = [];
+  final List<CartItem> _cart = [];
 
   @override
   void dispose() {
@@ -115,13 +116,22 @@ class _SalesScreenState extends State<SalesScreen> {
                       const SizedBox(height: 8),
 
                       // Display each product added to the cart.
-                      for (final product in _cart)
+                      // Display each cart item.
+                      for (final cartItem in _cart)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(product.name),
-                          subtitle: const Text('Quantity: 1'),
+
+                          // Display the product name.
+                          title: Text(cartItem.product.name),
+
+                          // Display the current quantity.
+                          subtitle: Text(
+                            'Quantity: ${cartItem.quantity}',
+                          ),
+
+                          // Display the total price for this cart item.
                           trailing: Text(
-                            '${product.price.toStringAsFixed(0)} MMK',
+                            '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
                           ),
                         ),
                     ],
@@ -148,7 +158,11 @@ class _SalesScreenState extends State<SalesScreen> {
                           onTap: () {
                             // Add the selected product to the cart.
                             setState(() {
-                              _cart.add(product);
+                              _cart.add(
+                                CartItem(
+                                  product: product,
+                                ),
+                              );
                             });
                             
                           },
