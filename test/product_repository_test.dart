@@ -1,10 +1,10 @@
-import 'package:drift/drift.dart';
+//import 'package:drift/drift.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 
 import 'package:myanpos/database/app_database.dart';
 import 'package:myanpos/database/repositories/product_repository.dart';
-
+import 'package:myanpos/models/product.dart' as app;
 void main() {
   // Create a fresh in-memory database for every test.
   //
@@ -29,15 +29,16 @@ void main() {
 
   test('product can be inserted and retrieved', () async {
     // Create a sample product.
-    const product = ProductsCompanion(
-      id: Value('product-001'),
-      name: Value('Coca Cola'),
-      barcode: Value('123456789'),
-      price: Value(1500),
-      stockQuantity: Value(20),
+   // Create an application-level product.
+    const product = app.Product(
+      id: 'product-001',
+      name: 'Coca Cola',
+      barcode: '123456789',
+      price: 1500,
+      stockQuantity: 20,
     );
 
-    // Insert the product into SQLite.
+    // Insert the product through the repository.
     await repository.insertProduct(product);
 
     // Read all products from SQLite.
