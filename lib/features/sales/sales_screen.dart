@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../models/product.dart';
 import '../../models/cart_item.dart';
+import '../../models/product.dart';
 import '../../services/product_service.dart';
 
 // Sales screen.
 //
-// This screen allows the user to search for products
-// before adding them to the sales cart.
+// This screen is responsible for searching products
+// and managing the current sales cart.
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
 
@@ -15,43 +15,48 @@ class SalesScreen extends StatefulWidget {
   State<SalesScreen> createState() => _SalesScreenState();
 }
 
+// State of the SalesScreen.
 class _SalesScreenState extends State<SalesScreen> {
-  // Controller for reading the search field.
+  // Controller used to read the product search field.
   final TextEditingController _searchController = TextEditingController();
 
-  // Product service provides product data.
+  // Service used to get product data.
   final ProductService _productService = ProductService();
 
-  // Products currently displayed after searching.
+  // Products currently displayed as search results.
   List<Product> _searchResults = [];
 
-  // Products currently added to the shopping cart.
+  // Products currently added to the sales cart.
+  //
+  // Each CartItem contains a Product and its quantity.
   final List<CartItem> _cart = [];
 
   @override
   void dispose() {
-    // Release the text controller when the screen is destroyed.
+    // Release the search controller when the screen is destroyed.
     _searchController.dispose();
+
     super.dispose();
   }
 
   // Search products by name or barcode.
   void _searchProducts(String query) {
-    // Remove unnecessary spaces and make the search case-insensitive.
+    // Remove extra spaces and make the search case-insensitive.
     final searchText = query.trim().toLowerCase();
 
-    // If the search field is empty, show no results.
+    // Clear search results when the search field is empty.
     if (searchText.isEmpty) {
       setState(() {
         _searchResults = [];
       });
+
       return;
     }
 
-    // Get all products from the product service.
+    // Get all available products.
     final products = _productService.getAllProducts();
 
-    // Find products whose name or barcode matches the search text.
+    // Find products matching the name or barcode.
     final results = products.where((product) {
       final nameMatches = product.name.toLowerCase().contains(searchText);
       final barcodeMatches = product.barcode.contains(searchText);
@@ -62,6 +67,41 @@ class _SalesScreenState extends State<SalesScreen> {
     // Update the UI with the matching products.
     setState(() {
       _searchResults = results;
+    });
+  }
+
+  // Calculate the total price of all products in the cart.
+  //
+  // Example:
+  // Coca Cola = 1,500 MMK × 2 = 3,000 MMK
+  // Pepsi     = 1,500 MMK × 1 = 1,500 MMK
+  // Total     = 4,500 MMK
+  double _calculateCartTotal() {
+    return _cart.fold(
+      0,
+      (total, cartItem) => total + cartItem.totalPrice,
+    );
+  }
+
+  // Add a product to the cart.
+  void _addToCart(Product product) {
+    setState(() {
+      // Check whether this product is already in the cart.
+      final existingIndex = _cart.indexWhere(
+        (cartItem) => cartItem.product.id == product.id,
+      );
+
+      if (existingIndex >= 0) {
+        // If the product already exists, increase its quantity.
+        _cart[existingIndex].quantity++;
+      } else {
+        // Otherwise, create a new cart item with quantity 1.
+        _cart.add(
+          CartItem(
+            product: product,
+          ),
+        );
+      }
     });
   }
 
@@ -81,7 +121,7 @@ class _SalesScreenState extends State<SalesScreen> {
             TextField(
               controller: _searchController,
 
-              // Search whenever the user changes the text.
+              // Search products whenever the text changes.
               onChanged: _searchProducts,
 
               decoration: InputDecoration(
@@ -96,82 +136,6 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
 
             const SizedBox(height: 16),
-               // Display products currently in the cart.
-            if (_cart.isNotEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Cart heading.
-                      const Text(
-                        'Cart',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Display each product added to the cart.
-                      // Display each cart item.
-                     // Display each item currently in the cart.
-            for (final cartItem in _cart)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-
-                // Product name.
-                title: Text(cartItem.product.name),
-
-                // Quantity controls.
-                subtitle: Row(
-                  children: [
-                    // Decrease quantity button.
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          // Do not allow the quantity to become zero.
-                          if (cartItem.quantity > 1) {
-                            cartItem.quantity--;
-                          }
-                        });
-                      },
-                      icon: const Icon(Icons.remove),
-                    ),
-
-                    // Current quantity.
-                    Text(
-                      '${cartItem.quantity}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-        // Increase quantity button.
-        IconButton(
-          onPressed: () {
-            setState(() {
-              // Increase the quantity by one.
-              cartItem.quantity++;
-            });
-          },
-          icon: const Icon(Icons.add),
-        ),
-      ],
-    ),
-
-    // Total price for this cart item.
-    trailing: Text(
-      '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
-    ),
-  ),
-                    ],
-                  ),
-                ),
-              ),
 
             // Display search results.
             Expanded(
@@ -189,21 +153,143 @@ class _SalesScreenState extends State<SalesScreen> {
 
                         return _ProductResultCard(
                           product: product,
+
+                          // Add the selected product to the cart.
                           onTap: () {
-                            // Add the selected product to the cart.
-                            setState(() {
-                              _cart.add(
-                                CartItem(
-                                  product: product,
-                                ),
-                              );
-                            });
-                            
+                            _addToCart(product);
                           },
                         );
                       },
                     ),
             ),
+
+            // Show the cart only when it contains products.
+            if (_cart.isNotEmpty) ...[
+              const SizedBox(height: 16),
+
+              // Cart section.
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Cart heading.
+                      const Text(
+                        'Cart',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Display every item in the cart.
+                      for (final cartItem in _cart)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+
+                          // Product name.
+                          title: Text(cartItem.product.name),
+
+                          // Quantity controls.
+                          subtitle: Row(
+                            children: [
+                              // Decrease quantity.
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    // Prevent quantity from becoming zero.
+                                    if (cartItem.quantity > 1) {
+                                      cartItem.quantity--;
+                                    }
+                                  });
+                                },
+                                icon: const Icon(Icons.remove),
+                              ),
+
+                              // Current quantity.
+                              Text(
+                                '${cartItem.quantity}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              // Increase quantity.
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    cartItem.quantity++;
+                                  });
+                                },
+                                icon: const Icon(Icons.add),
+                              ),
+                            ],
+                          ),
+
+                          // Total price for this product.
+                          // Display the item total and remove button.
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Display the total price for this cart item.
+                              Text(
+                                '${cartItem.totalPrice.toStringAsFixed(0)} MMK',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(width: 8),
+
+                              // Remove the product from the cart.
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    // Remove this cart item.
+                                    _cart.remove(cartItem);
+                                  });
+                                },
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: 'Remove from cart',
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      const Divider(),
+
+                      // Grand total.
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Total label.
+                          const Text(
+                            'Total',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          // Calculate and display the cart total.
+                          Text(
+                            '${_calculateCartTotal().toStringAsFixed(0)} MMK',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -244,7 +330,7 @@ class _ProductResultCard extends StatelessWidget {
           ),
         ),
 
-        // Called when the product is selected.
+        // Add product to cart when selected.
         onTap: onTap,
       ),
     );
