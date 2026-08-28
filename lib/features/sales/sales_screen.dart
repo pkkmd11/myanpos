@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../database/app_database.dart';
+import '../../database/repositories/product_repository.dart';
 import '../../models/cart_item.dart';
-import '../../models/product.dart';
+import '../../models/product.dart' as app;
 import '../../services/product_service.dart';
 import 'widgets/cart_item_tile.dart';
-
 // Sales screen.
 //
 // This screen is responsible for searching products
@@ -21,11 +22,23 @@ class _SalesScreenState extends State<SalesScreen> {
   // Controller used to read the product search field.
   final TextEditingController _searchController = TextEditingController();
 
-  // Service used to get product data.
-  final ProductService _productService = ProductService();
+  // Local database instance.
+  final AppDatabase _database = AppDatabase();
 
+  // Product service connected to the local database.
+  late final ProductService _productService;
   // Products currently displayed as search results.
-  List<Product> _searchResults = [];
+  @override
+  void initState() {
+    super.initState();
+
+    // Connect the product service to the local database.
+    _productService = ProductService(
+      ProductRepository(_database),
+    );
+  }
+  
+  List<app.Product> _searchResults = [];
 
   // Products currently added to the sales cart.
   //
@@ -41,7 +54,7 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   // Search products by name or barcode.
-  void _searchProducts(String query) {
+  Future<void> _searchProducts(String query) async {
     // Remove extra spaces and make the search case-insensitive.
     final searchText = query.trim().toLowerCase();
 
@@ -55,8 +68,7 @@ class _SalesScreenState extends State<SalesScreen> {
     }
 
     // Get all available products.
-    final products = _productService.getAllProducts();
-
+    final products = await _productService.getAllProducts();
     // Find products matching the name or barcode.
     final results = products.where((product) {
       final nameMatches = product.name.toLowerCase().contains(searchText);
@@ -85,7 +97,7 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   // Add a product to the cart.
-  void _addToCart(Product product) {
+  void _addToCart(app.Product product) {
     setState(() {
       // Check whether this product is already in the cart.
       final existingIndex = _cart.indexWhere(
@@ -255,7 +267,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
 // Displays a product returned by the search.
 class _ProductResultCard extends StatelessWidget {
-  final Product product;
+  final app.Product product;
   final VoidCallback onTap;
 
   const _ProductResultCard({
