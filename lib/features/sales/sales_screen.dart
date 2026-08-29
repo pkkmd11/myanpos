@@ -27,6 +27,11 @@ class _SalesScreenState extends State<SalesScreen> {
 
   // Product service connected to the local database.
   late final ProductService _productService;
+  // Seed sample products into the local database.
+  Future<void> _seedProducts() async {
+    await _productService.seedSampleProducts();
+  }
+
   // Products currently displayed as search results.
   @override
   void initState() {
@@ -36,6 +41,12 @@ class _SalesScreenState extends State<SalesScreen> {
     _productService = ProductService(
       ProductRepository(_database),
     );
+    // add development sample product if the database is empty
+    _initializeProducts();
+
+  }
+  Future<void> _initializeProducts() async {
+    await _productService.seedSampleProducts();
   }
   
   List<app.Product> _searchResults = [];
