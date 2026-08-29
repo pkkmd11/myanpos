@@ -1,138 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../database/app_database.dart';
-import '../../database/repositories/product_repository.dart';
 import '../../models/cart_item.dart';
 import '../../models/product.dart' as app;
-import '../../services/product_service.dart';
+import 'controllers/sales_controller.dart';
 import 'widgets/cart_item_tile.dart';
-// Sales screen.
-//
-// This screen is responsible for searching products
-// and managing the current sales cart.
-class SalesScreen extends StatefulWidget {
+
+/// Sales screen.
+///
+/// The screen is responsible only for displaying the UI.
+/// Search and cart logic are handled by SalesController.
+class SalesScreen extends ConsumerStatefulWidget {
   const SalesScreen({super.key});
 
   @override
-  State<SalesScreen> createState() => _SalesScreenState();
+  ConsumerState<SalesScreen> createState() => _SalesScreenState();
 }
 
-// State of the SalesScreen.
-class _SalesScreenState extends State<SalesScreen> {
-  // Controller used to read the product search field.
-  final TextEditingController _searchController = TextEditingController();
-
-  // Local database instance.
-  final AppDatabase _database = AppDatabase();
-
-  // Product service connected to the local database.
-  late final ProductService _productService;
-  // Seed sample products into the local database.
-  Future<void> _seedProducts() async {
-    await _productService.seedSampleProducts();
-  }
-
-  // Products currently displayed as search results.
-  @override
-  void initState() {
-    super.initState();
-
-    // Connect the product service to the local database.
-    _productService = ProductService(
-      ProductRepository(_database),
-    );
-    // add development sample product if the database is empty
-    _initializeProducts();
-
-  }
-  Future<void> _initializeProducts() async {
-    await _productService.seedSampleProducts();
-  }
-  
-  List<app.Product> _searchResults = [];
-
-  // Products currently added to the sales cart.
-  //
-  // Each CartItem contains a Product and its quantity.
-  final List<CartItem> _cart = [];
+class _SalesScreenState extends ConsumerState<SalesScreen> {
+  final TextEditingController _searchController =
+      TextEditingController();
 
   @override
   void dispose() {
-    // Release the search controller when the screen is destroyed.
     _searchController.dispose();
-
     super.dispose();
-  }
-
-  // Search products by name or barcode.
-  Future<void> _searchProducts(String query) async {
-    // Remove extra spaces and make the search case-insensitive.
-    final searchText = query.trim().toLowerCase();
-
-    // Clear search results when the search field is empty.
-    if (searchText.isEmpty) {
-      setState(() {
-        _searchResults = [];
-      });
-
-      return;
-    }
-
-    // Get all available products.
-    final products = await _productService.getAllProducts();
-    // Find products matching the name or barcode.
-    final results = products.where((product) {
-      final nameMatches = product.name.toLowerCase().contains(searchText);
-      final barcodeMatches = product.barcode.contains(searchText);
-
-      return nameMatches || barcodeMatches;
-    }).toList();
-
-    // Update the UI with the matching products.
-    setState(() {
-      _searchResults = results;
-    });
-  }
-
-  // Calculate the total price of all products in the cart.
-  //
-  // Example:
-  // Coca Cola = 1,500 MMK × 2 = 3,000 MMK
-  // Pepsi     = 1,500 MMK × 1 = 1,500 MMK
-  // Total     = 4,500 MMK
-  double _calculateCartTotal() {
-    return _cart.fold(
-      0,
-      (total, cartItem) => total + cartItem.totalPrice,
-    );
-  }
-
-  // Add a product to the cart.
-  void _addToCart(app.Product product) {
-    setState(() {
-      // Check whether this product is already in the cart.
-      final existingIndex = _cart.indexWhere(
-        (cartItem) => cartItem.product.id == product.id,
-      );
-
-      if (existingIndex >= 0) {
-        // If the product already exists, increase its quantity.
-        _cart[existingIndex].quantity++;
-      } else {
-        // Otherwise, create a new cart item with quantity 1.
-        _cart.add(
-          CartItem(
-            product: product,
-          ),
-        );
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen to the current sales state.
+    final salesState = ref.watch(salesControllerProvider);
+
+    // Get the controller without rebuilding the screen.
+    final controller =
+        ref.read(salesControllerProvider.notifier);
+
     return Scaffold(
-      // Top navigation bar.
       appBar: AppBar(
         title: const Text('New Sale'),
       ),
@@ -141,17 +45,32 @@ class _SalesScreenState extends State<SalesScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Product search field.
+            // --------------------------------------------------
+            // Product Search
+            // --------------------------------------------------
             TextField(
               controller: _searchController,
 
-              // Search products whenever the text changes.
-              onChanged: _searchProducts,
+              // Search whenever the user types.
+              onChanged: controller.searchProducts,
 
               decoration: InputDecoration(
                 labelText: 'Search product',
                 hintText: 'Enter product name or barcode',
                 prefixIcon: const Icon(Icons.search),
+
+                // Clear search button.
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+
+                          controller.searchProducts('');
+                          setState(() {});
+                        },
+                      )
+                    : null,
 
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -161,114 +80,206 @@ class _SalesScreenState extends State<SalesScreen> {
 
             const SizedBox(height: 16),
 
-            // Display search results.
+            // --------------------------------------------------
+            // Search Results
+            // --------------------------------------------------
             Expanded(
-              child: _searchResults.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No products found',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final product = _searchResults[index];
-
-                        return _ProductResultCard(
-                          product: product,
-
-                          // Add the selected product to the cart.
-                          onTap: () {
-                            _addToCart(product);
-                          },
-                        );
-                      },
-                    ),
+              child: _buildSearchResults(
+                context,
+                salesState,
+                controller,
+              ),
             ),
 
-            // Show the cart only when it contains products.
-            if (_cart.isNotEmpty) ...[
-              const SizedBox(height: 16),
+            // --------------------------------------------------
+            // Cart
+            // --------------------------------------------------
+            if (salesState.cart.isNotEmpty)
+              _buildCart(
+                context,
+                salesState,
+                controller,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              // Cart section.
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Cart heading.
-                      const Text(
-                        'Cart',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+  /// Build the product search result section.
+  Widget _buildSearchResults(
+    BuildContext context,
+    SalesState state,
+    SalesController controller,
+  ) {
+    // Show loading indicator while searching.
+    if (state.isSearching) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
 
-                      const SizedBox(height: 8),
+    // Show error message.
+    if (state.errorMessage != null) {
+      return Center(
+        child: Text(
+          state.errorMessage!,
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 16,
+          ),
+        ),
+      );
+    }
 
-                      // Display every item in the cart.
-                     // Display every item in the cart.
-                    for (final cartItem in _cart)
-                      CartItemTile(
-                        cartItem: cartItem,
+    // No search results.
+    if (state.searchResults.isEmpty) {
+      return const Center(
+        child: Text(
+          'Search for a product',
+          style: TextStyle(
+            fontSize: 18,
+          ),
+        ),
+      );
+    }
 
-                        // Decrease the quantity.
-                        onDecrease: () {
-                          setState(() {
-                            if (cartItem.quantity > 1) {
-                              cartItem.quantity--;
-                            }
-                          });
-                        },
+    return ListView.builder(
+      itemCount: state.searchResults.length,
+      itemBuilder: (context, index) {
+        final product = state.searchResults[index];
 
-                        // Increase the quantity.
-                        onIncrease: () {
-                          setState(() {
-                            cartItem.quantity++;
-                          });
-                        },
+        return _ProductResultCard(
+          product: product,
 
-                        // Remove the item from the cart.
-                        onRemove: () {
-                          setState(() {
-                            _cart.remove(cartItem);
-                          });
-                        },
-                      ),
+          onTap: () {
+            controller.addToCart(product);
+          },
+        );
+      },
+    );
+  }
 
-                      const Divider(),
-
-                      // Grand total.
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Total label.
-                          const Text(
-                            'Total',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          // Calculate and display the cart total.
-                          Text(
-                            '${_calculateCartTotal().toStringAsFixed(0)} MMK',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+  /// Build the shopping cart section.
+  Widget _buildCart(
+    BuildContext context,
+    SalesState state,
+    SalesController controller,
+  ) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --------------------------------------------------
+            // Cart Header
+            // --------------------------------------------------
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Cart',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+
+                // Clear cart button.
+                TextButton(
+                  onPressed: controller.clearCart,
+                  child: const Text('Clear'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // --------------------------------------------------
+            // Cart Items
+            // --------------------------------------------------
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: 250,
               ),
-            ],
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: state.cart.length,
+                itemBuilder: (context, index) {
+                  final cartItem = state.cart[index];
+
+                  return CartItemTile(
+                    cartItem: cartItem,
+
+                    // Decrease quantity.
+                    onDecrease: () {
+                      controller.decreaseQuantity(
+                        cartItem,
+                      );
+                    },
+
+                    // Increase quantity.
+                    onIncrease: () {
+                      controller.increaseQuantity(
+                        cartItem,
+                      );
+                    },
+
+                    // Remove product.
+                    onRemove: () {
+                      controller.removeFromCart(
+                        cartItem,
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+
+            const Divider(),
+
+            // --------------------------------------------------
+            // Grand Total
+            // --------------------------------------------------
+            Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                Text(
+                  '${state.cartTotal.toStringAsFixed(0)} MMK',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // --------------------------------------------------
+            // Checkout Button
+            // --------------------------------------------------
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Checkout will be implemented next.
+                },
+                child: const Text(
+                  'Checkout',
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -276,7 +287,7 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 }
 
-// Displays a product returned by the search.
+/// Displays one product from the search results.
 class _ProductResultCard extends StatelessWidget {
   final app.Product product;
   final VoidCallback onTap;
@@ -291,17 +302,22 @@ class _ProductResultCard extends StatelessWidget {
     return Card(
       child: ListTile(
         // Product icon.
-        leading: const Icon(Icons.inventory_2),
-
-        // Product name.
-        title: Text(product.name),
-
-        // Barcode and stock information.
-        subtitle: Text(
-          'Barcode: ${product.barcode} • Stock: ${product.stockQuantity}',
+        leading: const Icon(
+          Icons.inventory_2,
         ),
 
-        // Product selling price.
+        // Product name.
+        title: Text(
+          product.name,
+        ),
+
+        // Barcode and stock.
+        subtitle: Text(
+          'Barcode: ${product.barcode} '
+          '• Stock: ${product.stockQuantity}',
+        ),
+
+        // Selling price.
         trailing: Text(
           '${product.price.toStringAsFixed(0)} MMK',
           style: const TextStyle(
@@ -309,9 +325,10 @@ class _ProductResultCard extends StatelessWidget {
           ),
         ),
 
-        // Add product to cart when selected.
+        // Add product to cart.
         onTap: onTap,
       ),
     );
   }
 }
+
